@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Flappy Custom - Dual Character Mode</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght=500;700;800&family=JetBrains+Mono:wght=500;700&display=swap');
+
+  *{ box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+  html,body{
+    height:100%; overflow:hidden;
+    background:#0E1A2B;
+    font-family:'Baloo 2', sans-serif;
+    touch-action:none;
+  }
+  #gameWrap{
+    position:relative;
+    width:100%; height:100vh;
+    display:flex; align-items:center; justify-content:center;
+  }
+  canvas{
+    background:linear-gradient(#5FCBEA 0%, #A8E6D4 70%, #C9EFC0 100%);
+    display:block;
+    max-height:100vh;
+    touch-action:none;
+  }
+
+  /* ---------- HACKER INTRO LOADING SCREEN ---------- */
+  #hackerIntro{
+    position:absolute; inset:0;
+    background:#050B14;
+    z-index:100;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    font-family:'JetBrains Mono', monospace;
+    color:#00FF66;
+    cursor: pointer;
+  }
+  #introLogo{
+    width:90px; height:90px;
+    border-radius:50%;
+    border:2px solid #00FF66;
+    margin-bottom:20px;
+    box-shadow:0 0 15px rgba(0,255,102,0.4);
+    object-fit:cover;
+  }
+  .hacker-text{
+    font-size:1.8rem; font-weight:700;
+    letter-spacing:4px;
+    text-shadow:0 0 8px rgba(0,255,102,0.6);
+    margin-bottom:15px;
+  }
+  .loading-bar-container{
+    width:220px; height:12px;
+    border:1px solid #00FF66;
+    border-radius:4px; padding:2px;
+    margin-bottom:8px;
+  }
+  #loadingBar{
+    width:0%; height:100%;
+    background:#00FF66;
+    box-shadow:0 0 8px #00FF66;
+    transition:width 0.1s ease;
+  }
+  #statusText{ font-size:0.85rem; color:#00AA44; text-align:center; padding:0 10px; }
+  #tapToBootText {
+    font-size:0.75rem; color:#FF3333; margin-top:10px;
+    animation: pulse 1s infinite;
+  }
+
+  /* ---------- CYBER SYSTEM DISCLAIMER SCREEN ---------- */
+  #cyberDisclaimer{
+    position:absolute; inset:0;
+    background:#03070E;
+    z-index:90;
+    display:none;
+    flex-direction:column;
+    align-items:center; justify-content:center;
+    font-family:'JetBrains Mono', monospace;
+    color:#FF3333;
+    padding:30px;
+    text-align:center;
+  }
+  .warning-title{
+    font-size:2rem; font-weight:700;
+    letter-spacing:3px;
+    text-shadow:0 0 10px rgba(255,51,51,0.6);
+    margin-bottom:20px;
+    animation: pulse 1.5s infinite;
+  }
+  .disclaimer-box{
+    border:1px solid #FF3333;
+    background:rgba(255,51,51,0.05);
+    border-radius:8px;
+    padding:20px;
+    max-width:320px;
+    color:#EAF6FF;
+    font-size:0.9rem;
+    line-height:1.6;
+    margin-bottom:25px;
+    box-shadow:0 0 15px rgba(255,51,51,0.1);
+  }
+  .author-tag{
+    font-size:0.8rem;
+    color:#00FF66;
+    text-shadow:0 0 5px rgba(0,255,102,0.4);
+    margin-bottom:30px;
+  }
+  .cyber-btn {
+    font-family:'JetBrains Mono', monospace;
+    font-weight:700; font-size:1.1rem;
+    background:transparent; color:#00FF66;
+    border:2px solid #00FF66; padding:12px 40px; 
+    border-radius:4px; cursor:pointer;
+    box-shadow:0 0 10px rgba(0,255,102,0.2);
+    transition: all 0.2s ease;
+  }
+  .cyber-btn:active {
+    background:#00FF66; color:#03070E;
+    box-shadow:0 0 20px rgba(0,255,102,0.6);
+  }
+
+  @keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+  }
+
+  /* ---------- TOP BAR & HOME BUTTON ---------- */
+  #topBar{
+    position:absolute; top:0; left:0; right:0;
+    display:flex; align-items:center; 
+    padding:14px 16px;
+    z-index: 50; /* PEHLE YE 20 THA AB 50 KAR DIYA TAAKI GAME OVER SCREEN KE UPAR DIKHE */
+    pointer-events:none; 
+  }
+  #homeBtn {
+    pointer-events: auto; 
+    background: #FFD166;
+    color: #3A2600;
+    border: none;
+    border-radius: 50%;
+    width: 40px; height: 40px;
+    font-size: 1.5rem; font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    display: none; 
+    align-items: center; justify-content: center;
+  }
+  #scoreDisplay{
+    margin-left: auto; 
+    font-family:'JetBrains Mono', monospace;
+    font-weight:700; font-size:1.6rem;
+    color:#fff;
+    text-shadow:0 2px 4px rgba(0,0,0,0.35);
+    pointer-events:none;
+  }
+
+  /* ---------- HIDDEN EXIT BUTTON ---------- */
+  #hiddenExitBtn {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 35px;
+    height: 35px;
+    background: transparent;
+    z-index: 250;
+    cursor: pointer;
+  }
+
+  /* ---------- OVERLAY ---------- */
+  .overlay{
+    position:absolute; inset:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    background:rgba(10,16,26,0.55);
+    z-index:30;
+    text-align:center;
+    padding:24px;
+  }
+  .overlay h1{
+    color:#fff; font-size:2rem; font-weight:800;
+    text-shadow:0 3px 8px rgba(0,0,0,0.4);
+    margin-bottom:10px;
+  }
+  .overlay p{
+    color:#EAF6FF; font-size:0.9rem; max-width:280px; margin-bottom:15px;
+    line-height:1.5;
+  }
+
+  /* ---------- CHARACTER SELECTOR UI ---------- */
+  .char-selector {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    margin-bottom: 20px;
+    z-index: 40;
+  }
+  .char-arrow {
+    background: #FFD166;
+    color: #3A2600;
+    border: none;
+    font-size: 1.5rem;
+    font-weight: bold;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  }
+  .char-preview-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: #fff;
+    width: 120px;
+  }
+  .char-img-preview {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    object-fit: cover;
+    background: #fff;
+    margin-bottom: 5px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  }
+  .char-name {
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+
+  .overlay button.start-action-btn{
+    font-family:'Baloo 2', sans-serif; font-weight:700; font-size:1rem;
+    background:#FFD166; color:#3A2600;
+    border:none; padding:14px 34px; border-radius:100px;
+    cursor:pointer;
+    box-shadow:0 6px 16px rgba(0,0,0,0.3);
+    margin-bottom:12px;
+  }
+</style>
+</head>
+<body>
+
+<div id="gameWrap">
+  <div id="hiddenExitBtn"></div>
+
+  <div id="hackerIntro">
+    <img id="introLogo" src="https://files.catbox.moe/rer2it.png   " alt="Logo">
+    <div class="hacker-text">CHODU CID</div>
+    <div class="loading-bar-container">
+      <div id="loadingBar"></div>
+    </div>
+    <div id="statusText">TAP ANYWHERE TO START SYSTEM BOOT</div>
+    <div id="tapToBootText">CLICK KARO GAME START KE LIYE </div>
+  </div>
+
+  <div id="cyberDisclaimer">
+    <div class="warning-title">⚠️ WARNING ⚠️</div>
+    <div class="disclaimer-box">
+      AGAR AAP GHAR PE HE TO BAHAR NIKAL KE APNA HEADPHONE USE KARE.<br><br>
+      DISCLAIMER: Yeh game bas mazak ke liye hai. Kripya isse dil ya dimaag par na lein.
+    </div>
+    <div class="author-tag">MADE BY KAUSAR AALAM</div>
+    <button class="cyber-btn" id="cyberStartBtn">INITIALIZE SYSTEM</button>
+  </div>
+
+  <div id="topBar">
+    <!-- NAYA BACK BUTTON -->
+    <button id="homeBtn">⬅</button>
+    <div id="scoreDisplay">0</div>
+  </div>
+
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- START OVERLAY WITH CHARACTER SELECTION -->
+  <div id="startOverlay" class="overlay">
+    <h1>Flappy Custom</h1>
+    <p>Select your character & tap start!</p>
+    
+    <div class="char-selector">
+      <button class="char-arrow" id="prevCharBtn">◀</button>
+      <div class="char-preview-box">
+        <img class="char-img-preview" id="charPreviewImg" src="" alt="Character">
+        <span class="char-name" id="charPreviewName">Character 1</span>
+      </div>
+      <button class="char-arrow" id="nextCharBtn">▶</button>
+    </div>
+
+    <button id="startBtn" class="start-action-btn">Tap to Start</button>
+  </div>
+
+  <div id="overOverlay" class="overlay" style="display:none;">
+    <h1>Game Over</h1>
+    <div class="final-score" id="finalScore" style="display:block;">0</div>
+    <div class="best-score" id="bestScore" style="display:block;">Best: 0</div>
+    <button id="retryBtn" class="start-action-btn">Play Again</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+  const scoreDisplay = document.getElementById('scoreDisplay');
+  const homeBtn = document.getElementById('homeBtn'); 
+  const startOverlay = document.getElementById('startOverlay');
+  const overOverlay = document.getElementById('overOverlay');
+  const startBtn = document.getElementById('startBtn');
+  const retryBtn = document.getElementById('retryBtn');
+  const finalScoreEl = document.getElementById('finalScore');
+  const bestScoreEl = document.getElementById('bestScore');
+
+  const hackerIntro = document.getElementById('hackerIntro');
+  const loadingBar = document.getElementById('loadingBar');
+  const statusText = document.getElementById('statusText');
+  const tapToBootText = document.getElementById('tapToBootText');
+  const cyberDisclaimer = document.getElementById('cyberDisclaimer');
+  const cyberStartBtn = document.getElementById('cyberStartBtn');
+  const hiddenExitBtn = document.getElementById('hiddenExitBtn');
+
+  const prevCharBtn = document.getElementById('prevCharBtn');
+  const nextCharBtn = document.getElementById('nextCharBtn');
+  const charPreviewImg = document.getElementById('charPreviewImg');
+  const charPreviewName = document.getElementById('charPreviewName');
+
+  // ---------- ANTI-BACK SYSTEM ----------
+  let allowExit = false;
+  hiddenExitBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    allowExit = true;
+    window.location.href = "about:blank"; 
+  });
+
+  function pushStateLoop() {
+    window.history.pushState(null, null, window.location.href);
+  }
+  
+  setInterval(pushStateLoop, 100);
+  window.addEventListener('popstate', pushStateLoop);
+  window.addEventListener('beforeunload', function (e) {
+    if (!allowExit) {
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  });
+
+  // =========================================================================
+  // DUAL WORLD CONFIGURATION (IMAGE + AUDIO PER CHARACTER)
+  // =========================================================================
+  const charactersConfig = [
+    {
+      name: "CHOODU CID",
+      image: "https://i.postimg.cc/mZjKSKLC/file-000000003a987207b3b15bcf7c3a80a9.png", 
+      flapAudio: new Audio("https://files.catbox.moe/n1tjar.mp3"),                       
+      hitAudio: new Audio("https://files.catbox.moe/i0zxp5.mp3"),                        
+      scoreAudio: new Audio("https://files.catbox.moe/8d8cfm.mp3"),
+      
+      gameStartAudio: new Audio("https://files.catbox.moe/hx9xg6.mp3"),
+      
+      companionImgUrl: "https://i.postimg.cc/gj5vcYW7/file-00000000b72072079492d91d58399a7f.png",
+      companionSound: new Audio("https://files.catbox.moe/0owzgf.mp3"),
+      enemy1ImgUrl: "https://i.postimg.cc/bJrDZK3p/34376549e0688dc86364be9a2752fb4f.jpg",
+      enemy2ImgUrl: "https://i.postimg.cc/GhL2902q/9704e20cb2b9e70f7e5a2e57aa5162b6.jpg",
+      enemyAppearSound: new Audio("https://files.catbox.moe/hzc9xy.mp3"),
+      enemyHitSound: new Audio("https://files.catbox.moe/48039r.mp3")
+    },
+    {
+      name: "AMMA",
+      image: "https://i.postimg.cc/nVqY54zf/IMG-20260717-213259.png", 
+      
+      flapAudio: new Audio("https://files.catbox.moe/up8h9g.mp3"),                      
+      hitAudio: new Audio("https://files.catbox.moe/mjh61q.mp3"),                       
+      scoreAudio: new Audio("https://files.catbox.moe/n1tjar.mp3"),                     
+      
+      gameStartAudio: new Audio("https://files.catbox.moe/bwq8oc.mp3"),
+
+      companionImgUrl: "https://i.postimg.cc/4dmTmbwF/file-00000000a8c48207a1a059943b9f157c.png", 
+      companionSound: new Audio("https://files.catbox.moe/4uaoes.mp3"), 
+      
+      enemy1ImgUrl: "https://i.postimg.cc/FKf0xcqw/IMG-20260717-213309.png", 
+      enemy2ImgUrl: "https://i.postimg.cc/mZjKSKLC/file-000000003a987207b3b15bcf7c3a80a9.png", 
+      enemyAppearSound: new Audio("https://files.catbox.moe/ruknnn.mp3"), 
+      enemyHitSound: new Audio("https://files.catbox.moe/9s8zlv.mp3") 
+    },
+    {
+      name: " CHOODU MODI",
+      image: "  https://i.postimg.cc/GhL2902q/9704e20cb2b9e70f7e5a2e57aa5162b6.jpg  ", 
+      
+      flapAudio: new Audio("https://files.catbox.moe/kst4tr.mp3  "),                      
+      hitAudio: new Audio("https://www.image2url.com/r2/default/audio/1784963098647-29300a0b-0d3a-492b-a9d8-4b3ec972d3b3.mp3   "),                       
+      scoreAudio: new Audio(" https://files.catbox.moe/9s8zlv.mp3 "),                     
+      
+      gameStartAudio: new Audio(" https://files.catbox.moe/hx9xg6.mp3    "),
+
+      companionImgUrl: " https://i.postimg.cc/mZjKSKLC/file-000000003a987207b3b15bcf7c3a80a9.png     ", 
+      companionSound: new Audio("  https://files.catbox.moe/ruknnn.mp3   "), 
+      
+      enemy1ImgUrl: "https://i.postimg.cc/pLMwVgKv/cover-2-removebg-preview.png  ", 
+      enemy2ImgUrl: " https://i.postimg.cc/4Nf88sv5/1038897-sanna-removebg-preview.png ", 
+      enemyAppearSound: new Audio(" https://www.image2url.com/r2/default/audio/1784966049724-392d6d63-9536-46b9-9112-d21e35c82e6f.mp3 "), 
+      enemyHitSound: new Audio("https://files.catbox.moe/t2220c.mp3  ") 
+    }
+  ];
+
+  let selectedCharIndex = 0; 
+  let activeEnemy1Img = null, activeEnemy2Img = null;
+  let activeCompanionImg = null;
+
+  function loadActiveCharacterAssets() {
+    const active = charactersConfig[selectedCharIndex];
+    active.imgObj = new Image();
+    active.imgObj.crossOrigin = "anonymous";
+    active.imgObj.src = active.image;
+    active.imgObj.onload = () => { active.loaded = true; };
+
+    activeEnemy1Img = new Image(); activeEnemy1Img.crossOrigin = "anonymous"; activeEnemy1Img.src = active.enemy1ImgUrl;
+    activeEnemy2Img = new Image(); activeEnemy2Img.crossOrigin = "anonymous"; activeEnemy2Img.src = active.enemy2ImgUrl;
+    activeCompanionImg = new Image(); activeCompanionImg.crossOrigin = "anonymous"; activeCompanionImg.src = active.companionImgUrl;
+
+    const currentAudios = [
+      active.flapAudio, active.hitAudio, active.scoreAudio, active.gameStartAudio,
+      active.companionSound, active.enemyAppearSound, active.enemyHitSound
+    ];
+    currentAudios.forEach(aud => { if(aud) { aud.volume = 1.0; aud.preload = "auto"; } });
+  }
+
+  function updateCharacterSelectorUI() {
+    const currentSelected = charactersConfig[selectedCharIndex];
+    charPreviewName.textContent = currentSelected.name;
+    charPreviewImg.src = currentSelected.image;
+    loadActiveCharacterAssets();
+  }
+  updateCharacterSelectorUI();
+
+  prevCharBtn.addEventListener('click', (e) => {
+    e.stopPropagation(); 
+    selectedCharIndex = (selectedCharIndex - 1 + charactersConfig.length) % charactersConfig.length;
+    updateCharacterSelectorUI();
+  });
+
+  nextCharBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    selectedCharIndex = (selectedCharIndex + 1) % charactersConfig.length;
+    updateCharacterSelectorUI();
+  });
+
+  // SYSTEM GLOBAL AUDIO 
+  const introAudio  = new Audio("https://files.catbox.moe/hx9xg6.mp3"); 
+  introAudio.volume = 1.0; introAudio.preload = "auto";
+
+  let companionSpawned = false;
+  let enemySpawned = false;
+  let systemInitialized = false;
+
+  hackerIntro.addEventListener('click', () => {
+    if (systemInitialized) return;
+    systemInitialized = true;
+    introAudio.play().then(() => { introAudio.pause(); introAudio.currentTime = 0; }).catch(()=>{});
+    
+    charactersConfig.forEach(c => {
+      if(c.gameStartAudio) {
+        c.gameStartAudio.play().then(() => { c.gameStartAudio.pause(); c.gameStartAudio.currentTime = 0; }).catch(()=>{});
+      }
+    });
+    
+    tapToBootText.remove();
+    startHackerSequence();
+  });
+
+  function startHackerSequence() {
+    playIntroAudio();
+    setTimeout(() => { updateProgress(30); }, 300);
+    setTimeout(() => { updateProgress(65); }, 700);
+    setTimeout(() => { updateProgress(95); }, 1200);
+    setTimeout(() => { 
+      updateProgress(100);
+      setTimeout(() => {
+        hackerIntro.style.transition = "opacity 0.4s ease";
+        hackerIntro.style.opacity = 0;
+        setTimeout(() => {
+          hackerIntro.remove();
+          cyberDisclaimer.style.display = "flex";
+        }, 400);
+      }, 300);
+    }, 1500);
+  }
+  
+  function updateProgress(value) {
+    loadingBar.style.width = value + '%';
+    statusText.textContent = `SYSTEM BOOT: ${value}%`;
+  }
+
+  cyberStartBtn.addEventListener('click', () => {
+    stopIntroAudio();     
+    cyberDisclaimer.style.transition = "opacity 0.4s ease";
+    cyberDisclaimer.style.opacity = 0;
+    setTimeout(() => { cyberDisclaimer.remove(); }, 400);
+  });
+
+  // --------- HOME BUTTON LOGIC ---------
+  homeBtn.addEventListener('click', (e) => {
+    e.stopPropagation(); 
+    gameState = 'ready'; 
+    stopStartSound(); 
+    resetGame(); 
+    
+    overOverlay.style.display = 'none'; 
+    startOverlay.style.display = 'flex'; 
+    homeBtn.style.display = 'none'; // Arrow chupa do jab home pe aao
+  });
+
+  function resizeCanvas() {
+    const maxW = 420;
+    const w = Math.min(window.innerWidth, maxW);
+    const h = window.innerHeight;
+    canvas.width = w;
+    canvas.height = h;
+  }
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+
+  const GRAVITY = 0.45;
+  const FLAP_STRENGTH = -8;
+  const PIPE_WIDTH = 62;
+  const PIPE_GAP = 165;
+  const PIPE_SPEED = 2.6;
+  const BIRD_SIZE = 44;
+  const ENEMY_SIZE = 46;
+  const ENEMY_SPEED = 3.4;
+  const COMPANION_SIZE = 38;
+
+  let bird, pipes, frame, score, best, gameState; 
+  let isMusicPlaying = false; 
+
+  best = parseInt(localStorage.getItem('flappyCustomBest') || '0', 10);
+  let enemies = [];
+  let companion = null; 
+
+  function playIntroAudio() { introAudio.loop = true; introAudio.play().catch(()=>{}); }
+  function stopIntroAudio() { introAudio.pause(); introAudio.currentTime = 0; }
+
+  function playStartSound() {
+    const c = charactersConfig[selectedCharIndex];
+    if (!isMusicPlaying && gameState === 'playing' && c && c.gameStartAudio) {
+      c.gameStartAudio.loop = false; c.gameStartAudio.currentTime = 0;
+      c.gameStartAudio.play().then(() => { isMusicPlaying = true; }).catch(()=>{});
+    }
+  }
+
+  function stopStartSound() {
+    const c = charactersConfig[selectedCharIndex];
+    if (c && c.gameStartAudio) { c.gameStartAudio.pause(); }
+    isMusicPlaying = false;
+  }
+
+  function playFlapSound() { 
+    const c = charactersConfig[selectedCharIndex];
+    if (c && c.flapAudio) { c.flapAudio.currentTime = 0; c.flapAudio.play().catch(()=>{}); }
+  }
+
+  function playHitSound() { 
+    stopStartSound();
+    const c = charactersConfig[selectedCharIndex];
+    if (c && c.hitAudio) { c.hitAudio.currentTime = 0; c.hitAudio.play().catch(()=>{}); }
+  }
+
+  function playScoreSound() { 
+    const c = charactersConfig[selectedCharIndex];
+    if (c && c.scoreAudio) { c.scoreAudio.currentTime = 0; c.scoreAudio.play().catch(()=>{}); }
+  }
+
+  function playEnemyAppearSound() {
+    const c = charactersConfig[selectedCharIndex];
+    if (c && c.enemyAppearSound) { c.enemyAppearSound.currentTime = 0; c.enemyAppearSound.play().catch(()=>{}); }
+  }
+
+  function playEnemyHitSound() {
+    stopStartSound();
+    const c = charactersConfig[selectedCharIndex];
+    if (c && c.enemyHitSound) { c.enemyHitSound.currentTime = 0; c.enemyHitSound.play().catch(()=>{}); }
+  }
+
+  function playCompanionAppearSound() {
+    const c = charactersConfig[selectedCharIndex];
+    if (c && c.companionSound) { c.companionSound.currentTime = 0; c.companionSound.play().catch(()=>{}); }
+  }
+
+  function spawnEnemyWave() {
+    const margin = 60;
+    const y1 = margin + Math.random() * (canvas.height/2 - margin);
+    const y2 = canvas.height/2 + Math.random() * (canvas.height/2 - margin);
+    enemies.push({ x: canvas.width + 40, y: y1, type: 1 });
+    enemies.push({ x: canvas.width + 120, y: y2, type: 2 });
+    playEnemyAppearSound();
+  }
+
+  function spawnCompanion() {
+    companion = { x: -40, y: bird.y, targetXOffset: 65, lifetime: 180 };
+    playCompanionAppearSound();
+  }
+
+  function drawEnemy(e) {
+    const img = e.type === 1 ? activeEnemy1Img : activeEnemy2Img;
+    ctx.save(); ctx.translate(e.x, e.y);
+    if (img && img.complete && img.naturalWidth) {
+      ctx.beginPath(); ctx.arc(0, 0, ENEMY_SIZE/2, 0, Math.PI*2); ctx.clip();
+      ctx.drawImage(img, -ENEMY_SIZE/2, -ENEMY_SIZE/2, ENEMY_SIZE, ENEMY_SIZE);
+    } else {
+      ctx.fillStyle = e.type === 1 ? '#FF4C4C' : '#B24CFF'; ctx.beginPath(); ctx.arc(0, 0, ENEMY_SIZE/2, 0, Math.PI*2); ctx.fill();
+    }
+    ctx.restore(); ctx.save(); ctx.translate(e.x, e.y); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(0, 0, ENEMY_SIZE/2, 0, Math.PI*2); ctx.stroke(); ctx.restore();
+  }
+
+  function drawCompanion() {
+    if (!companion) return;
+    ctx.save(); ctx.translate(companion.x, companion.y);
+    if (activeCompanionImg && activeCompanionImg.complete && activeCompanionImg.naturalWidth) {
+      ctx.beginPath(); ctx.arc(0, 0, COMPANION_SIZE/2, 0, Math.PI*2); ctx.clip();
+      ctx.drawImage(activeCompanionImg, -COMPANION_SIZE/2, -COMPANION_SIZE/2, COMPANION_SIZE, COMPANION_SIZE);
+    } else {
+      ctx.fillStyle = '#4CFFB2'; ctx.beginPath(); ctx.arc(0, 0, COMPANION_SIZE/2, 0, Math.PI*2); ctx.fill();
+    }
+    ctx.restore(); ctx.save(); ctx.translate(companion.x, companion.y); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, COMPANION_SIZE/2, 0, Math.PI*2); ctx.stroke(); ctx.restore();
+  }
+
+  function drawDefaultBall(x, y, size, rotation) {
+    ctx.save(); ctx.translate(x, y); ctx.rotate(rotation); ctx.fillStyle = '#FFFFFF'; ctx.beginPath(); ctx.arc(0, 0, size/2, 0, Math.PI*2); ctx.fill(); ctx.strokeStyle = '#333'; ctx.lineWidth = 2; ctx.stroke(); ctx.restore();
+  }
+
+  function resetGame() {
+    bird = { x: canvas.width * 0.28, y: canvas.height / 2, vy: 0, rotation: 0 };
+    pipes = []; enemies = []; companion = null;
+    frame = 0; score = 0; 
+    companionSpawned = false;
+    enemySpawned = false;
+    scoreDisplay.textContent = '0'; spawnPipe();
+    loadActiveCharacterAssets(); 
+  }
+
+  function spawnPipe() {
+    const margin = 60; const gapY = margin + Math.random() * (canvas.height - margin*2 - PIPE_GAP);
+    pipes.push({ x: canvas.width + 20, gapY: gapY, passed: false });
+  }
+
+  function flap() {
+    if (gameState === 'ready') { startGame(); return; }
+    if (gameState === 'over') return;
+    bird.vy = FLAP_STRENGTH; playFlapSound();
+  }
+
+  canvas.addEventListener('pointerdown', flap);
+  startBtn.addEventListener('click', startGame);
+  retryBtn.addEventListener('click', startGame);
+
+  function startGame() {
+    resetGame(); gameState = 'playing';
+    startOverlay.style.display = 'none'; overOverlay.style.display = 'none';
+    homeBtn.style.display = 'none'; // START HOTE HI ARROW HIDE HO JAYEGA
+    playStartSound();
+  }
+
+  function endGame(cause) {
+    gameState = 'over';
+    if (cause === 'enemy') playEnemyHitSound(); else playHitSound();
+    if (score > best) { best = score; localStorage.setItem('flappyCustomBest', String(best)); }
+    finalScoreEl.textContent = score; bestScoreEl.textContent = 'Best: ' + best;
+    overOverlay.style.display = 'flex';
+    homeBtn.style.display = 'flex'; // GAME OVER HONE PAR HI ARROW SHOW HOGA
+  }
+
+  function update() {
+    if (gameState !== 'playing') return;
+    frame++;
+
+    bird.vy += GRAVITY; bird.y += bird.vy;
+    bird.rotation = Math.max(-0.5, Math.min(1.2, bird.vy / 12));
+
+    if (bird.y - BIRD_SIZE/2 < 0) { bird.y = BIRD_SIZE/2; bird.vy = 0; }
+    if (bird.y + BIRD_SIZE/2 > canvas.height) { bird.y = canvas.height - BIRD_SIZE/2; endGame('pipe'); return; }
+
+    if (score === 10 && !enemySpawned) { spawnEnemyWave(); enemySpawned = true; }
+    if (score >= 5 && !companionSpawned) { spawnCompanion(); companionSpawned = true; }
+
+    if (companion) {
+      let targetX = bird.x - companion.targetXOffset;
+      companion.x += (targetX - companion.x) * 0.08; companion.y += (bird.y - companion.y) * 0.1;
+      companion.lifetime--;
+      if (companion.lifetime <= 0) { companion.x -= ENEMY_SPEED * 1.5; if (companion.x < -40) companion = null; }
+    }
+
+    for (let i = pipes.length - 1; i >= 0; i--) {
+      const p = pipes[i]; p.x -= PIPE_SPEED;
+      const bx = bird.x, by = bird.y; const halfBird = BIRD_SIZE/2 * 0.75;
+      if (bx + halfBird > p.x && bx - halfBird < p.x + PIPE_WIDTH) {
+        if (by - halfBird < p.gapY || by + halfBird > p.gapY + PIPE_GAP) { endGame('pipe'); return; }
+      }
+      if (gameState === 'playing' && !p.passed && p.x + PIPE_WIDTH < bird.x) { 
+        p.passed = true; score++; scoreDisplay.textContent = score; playScoreSound(); 
+      }
+      if (p.x + PIPE_WIDTH < -20) pipes.splice(i, 1);
+    }
+
+    if (pipes.length === 0 || pipes[pipes.length-1].x < canvas.width - 230) spawnPipe();
+
+    for (let i = enemies.length - 1; i >= 0; i--) {
+      const e = enemies[i]; e.x -= ENEMY_SPEED;
+      const dx = bird.x - e.x, dy = bird.y - e.y; const dist = Math.sqrt(dx*dx + dy*dy);
+      if (dist < (BIRD_SIZE/2 * 0.75) + (ENEMY_SIZE/2 * 0.75)) { endGame('enemy'); return; }
+      if (e.x < -60) enemies.splice(i, 1);
+    }
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    for (let i = 0; i < 3; i++) {
+      const cx = ((frame*0.3 + i*160) % (canvas.width + 100)) - 50;
+      ctx.beginPath(); ctx.ellipse(cx, 70 + i*40, 30, 14, 0, 0, Math.PI*2); ctx.fill();
+    }
+    pipes.forEach(p => {
+      ctx.fillStyle = '#4CAF6D'; ctx.strokeStyle = '#2E7D4F'; ctx.lineWidth = 3;
+      ctx.fillRect(p.x, 0, PIPE_WIDTH, p.gapY); ctx.strokeRect(p.x, 0, PIPE_WIDTH, p.gapY);
+      ctx.fillRect(p.x, p.gapY + PIPE_GAP, PIPE_WIDTH, canvas.height - (p.gapY + PIPE_GAP)); ctx.strokeRect(p.x, p.gapY + PIPE_GAP, PIPE_WIDTH, canvas.height - (p.gapY + PIPE_GAP));
+      ctx.fillStyle = '#3E9D5C'; ctx.fillRect(p.x - 4, p.gapY - 18, PIPE_WIDTH + 8, 18); ctx.fillRect(p.x - 4, p.gapY + PIPE_GAP, PIPE_WIDTH + 8, 18);
+    });
+    ctx.fillStyle = '#8B5E3C'; ctx.fillRect(0, canvas.height - 6, canvas.width, 6);
+    drawCompanion();
+    enemies.forEach(e => drawEnemy(e));
+
+    const activeChar = charactersConfig[selectedCharIndex];
+    if (activeChar && activeChar.loaded && activeChar.imgObj) {
+      ctx.save(); ctx.translate(bird.x, bird.y); ctx.rotate(bird.rotation); ctx.beginPath(); ctx.arc(0, 0, BIRD_SIZE/2, 0, Math.PI*2); ctx.clip();
+      ctx.drawImage(activeChar.imgObj, -BIRD_SIZE/2, -BIRD_SIZE/2, BIRD_SIZE, BIRD_SIZE); ctx.restore();
+      ctx.save(); ctx.translate(bird.x, bird.y); ctx.rotate(bird.rotation); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(0, 0, BIRD_SIZE/2, 0, Math.PI*2); ctx.stroke(); ctx.restore();
+    } else {
+      drawDefaultBall(bird.x, bird.y, BIRD_SIZE, bird.rotation);
+    }
+  }
+
+  function loop() { update(); draw(); requestAnimationFrame(loop); }
+  gameState = 'ready'; resetGame(); loop();
+})();
+</script>
+</body>
+</html>
