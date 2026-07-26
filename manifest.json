@@ -1,0 +1,21 @@
+{
+  "name": "Choodu Game",
+  "short_name": "ChooduGame",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0E1A2B",
+  "theme_color": "#0E1A2B",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://i.postimg.cc/mZjKSKLC/file-000000003a987207b3b15bcf7c3a80a9.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://i.postimg.cc/mZjKSKLC/file-000000003a987207b3b15bcf7c3a80a9.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
